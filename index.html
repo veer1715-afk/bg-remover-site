@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Background Remover</title>
+  <style>
+    /* Minimalistic aesthetic UI similar to remove.bg */
+    body {
+      margin: 0;
+      padding: 0;
+      font-family: Arial, sans-serif;
+      background: #f5f7fa;
+      color: #111;
+      text-align: center;
+    }
+
+    header {
+      padding: 25px 0;
+      font-size: 32px;
+      font-weight: bold;
+    }
+
+    .upload-box {
+      margin: 40px auto;
+      padding: 60px;
+      width: 65%;
+      background: #ffffff;
+      border-radius: 20px;
+      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.07);
+      border: 2px dashed #d8d8d8;
+    }
+
+    .upload-box:hover {
+      border-color: #6b6b6b;
+    }
+
+    input[type="file"] {
+      display: none;
+    }
+
+    .upload-btn {
+      padding: 14px 28px;
+      background: #111;
+      color: #fff;
+      border-radius: 10px;
+      cursor: pointer;
+      display: inline-block;
+      font-size: 16px;
+      margin-top: 12px;
+    }
+
+    canvas {
+      margin-top: 40px;
+      max-width: 85%;
+    }
+
+    #downloadBtn {
+      display: none;
+      margin-top: 20px;
+      padding: 12px 24px;
+      border: none;
+      border-radius: 10px;
+      background: #111;
+      color: white;
+      cursor: pointer;
+      font-size: 16px;
+    }
+  </style>
+</head>
+<body>
+
+<header>AI Background Remover</header>
+
+<div class="upload-box" id="dropArea">
+  <h2>Drop an image here or upload</h2>
+  <label class="upload-btn" for="imageInput">Upload Image</label>
+  <input type="file" id="imageInput" accept="image/*" />
+</div>
+
+<canvas id="resultCanvas"></canvas>
+<br>
+<button id="downloadBtn">Download Image</button>
+
+<script src="https://unpkg.com/@imgly/background-removal"></script>
+<script>
+  const imageInput = document.getElementById("imageInput");
+  const canvas = document.getElementById("resultCanvas");
+  const downloadBtn = document.getElementById("downloadBtn");
+  const dropArea = document.getElementById("dropArea");
+
+  dropArea.addEventListener("dragover", (e) => {
+    e.preventDefault();
+    dropArea.style.borderColor = "#111";
+  });
+
+  dropArea.addEventListener("dragleave", () => {
+    dropArea.style.borderColor = "#d8d8d8";
+  });
+
+  dropArea.addEventListener("drop", (e) => {
+    e.preventDefault();
+    dropArea.style.borderColor = "#d8d8d8";
+    const file = e.dataTransfer.files[0];
+    processImage(file);
+  });
+
+  imageInput.addEventListener("change", (e) => {
+    const file = e.target.files[0];
+    processImage(file);
+  });
+
+  async function processImage(file) {
+    if (!file) return;
+
+    const img = new Image();
+    img.src = URL.createObjectURL(file);
+
+    img.onload = async () => {
+      const { removeBackground } = window.backgroundRemoval;
+
+      const blob = await removeBackground(img, {
+        progress: (p) => console.log(`Processing: ${Math.round(p * 100)}%`),
+      });
+
+      const resultImg = new Image();
+      resultImg.src = URL.createObjectURL(blob);
+
+      resultImg.onload = () => {
+        const ctx = canvas.getContext("2d");
+        canvas.width = resultImg.width;
+        canvas.height = resultImg.height;
+        ctx.drawImage(resultImg, 0, 0);
+        downloadBtn.style.display = "inline-block";
+      };
+    };
+  }
+
+  downloadBtn.addEventListener("click", () => {
+    const link = document.createElement("a");
+    link.download = "bg-removed.png";
+    link.href = canvas.toDataURL();
+    link.click();
+  });
+</script>
+
+</body>
+</html>
